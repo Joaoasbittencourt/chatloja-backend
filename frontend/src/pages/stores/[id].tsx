@@ -3,14 +3,54 @@ import { getStore, getStoreProducts } from '../../api'
 import { GetServerSideProps } from 'next'
 import { Product, Store } from '../../types'
 import { formatPrice } from '../../utils/numbers'
-import { Badge, Box, Card, Container, HStack, Stack, Text, VStack } from '@chakra-ui/react'
+import {
+  Badge,
+  Button,
+  Card,
+  Container,
+  HStack,
+  Input,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+  Stack,
+  Text,
+  VStack,
+  useNumberInput,
+} from '@chakra-ui/react'
 import { partitionBy } from '../../utils/collections'
 import Image from 'next/image'
-import React, { RefObject, useEffect, useMemo, useState } from 'react'
+import React, { createRef, useEffect, useMemo, useState } from 'react'
 
 type Props = {
   store: Store
   products: Product[]
+}
+
+const CountInput = () => {
+  const { getInputProps, getIncrementButtonProps, getDecrementButtonProps } = useNumberInput({
+    step: 1,
+    defaultValue: 1,
+    min: 1,
+    max: 99,
+    precision: 0,
+  })
+
+  const inc = getIncrementButtonProps()
+  const dec = getDecrementButtonProps()
+  const input = getInputProps()
+
+  return (
+    <HStack>
+      <Button {...inc}>+</Button>
+      <Input {...input} />
+      <Button {...dec}>-</Button>
+    </HStack>
+  )
 }
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
@@ -29,17 +69,19 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
 export default function StorePage({ store, products }: Props) {
   const groups = partitionBy(products, (p) => p.category)
   const categories = groups.map((g) => g.key)
-  const selectedCategory = categories[0]
   const [focus, setFocus] = useState<string | null>(categories.length > 0 ? categories[0] : null)
-  const categorySectionRefs = categories.map((category) => ({
-    category,
-    sectionRef: React.createRef<HTMLDivElement>(),
-  }))
+  const [modalProduct, setModalProduct] = useState<Product | null>(null)
 
-  React.useEffect(() => {
+  const categorySectionRefs = useMemo(() => {
+    const entries = categories.map((cat) => [cat, createRef<HTMLDivElement>()] as const)
+    return new Map(entries)
+  }, [categories])
+
+  useEffect(() => {
     const onEvent = () => {
-      for (const { sectionRef, category } of categorySectionRefs) {
-        const rect = sectionRef?.current?.getBoundingClientRect()
+      for (const category of categories) {
+        const ref = categorySectionRefs.get(category)
+        const rect = ref?.current?.getBoundingClientRect()
         const isInside = rect ? rect.top >= 0 && rect.top <= window.innerHeight : false
 
         if (isInside) {
@@ -50,19 +92,17 @@ export default function StorePage({ store, products }: Props) {
     }
     document.addEventListener('scroll', onEvent)
     return () => document.removeEventListener('scroll', onEvent)
-  }, [categorySectionRefs])
-
-  console.log('focusedCategory', focus)
+  }, [categorySectionRefs, categories])
 
   return (
     <>
       <Head>
-        <title>Landing Page</title>
+        <title>{store.name} </title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main style={{ backgroundColor: '#fafafa', minHeight: '100vh' }}>
-        <Stack margin={0} padding={1}>
+      <main style={{ backgroundColor: '#fafafa', minHeight: '100vh', marginBottom: 60 }}>
+        <Stack margin={0} padding={2}>
           <Text fontWeight={'bold'} variant="subtitle1">
             {store.name}
           </Text>
@@ -80,34 +120,26 @@ export default function StorePage({ store, products }: Props) {
         >
           {categories.map((category, index) => (
             <Badge
-              onClick={() =>
-                categorySectionRefs
-                  .find((ref) => ref.category === category)
-                  ?.sectionRef.current?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center',
-                  })
-              }
+              padding={1}
+              colorScheme="green"
               ml={index === 0 ? 2 : 0}
               mr={index === categories.length - 1 ? 2 : 0}
-              colorScheme="green"
               variant={focus === category ? 'solid' : 'subtle'}
               borderRadius={'md'}
               key={category}
-              padding={1}
+              onClick={() => {
+                const ref = categorySectionRefs.get(category)
+                ref?.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              }}
             >
               {category}
             </Badge>
           ))}
         </HStack>
         <Container>
-          <Stack my={4} spacing={3}>
+          <Stack my={4} spacing={4}>
             {groups.map((group) => (
-              <Stack
-                ref={categorySectionRefs.find((ref) => ref.category === group.key)?.sectionRef}
-                id={group.key}
-                key={group.key}
-              >
+              <Stack ref={categorySectionRefs.get(group.key)} id={group.key} key={group.key}>
                 <Stack
                   style={{ position: 'sticky', top: 0, backgroundColor: '#fafafa', zIndex: 1 }}
                   margin={0}
@@ -117,7 +149,11 @@ export default function StorePage({ store, products }: Props) {
                   </Text>
                 </Stack>
                 {group.items.map((product) => (
-                  <Card key={product.id}>
+                  <Card
+                    key={product.id}
+                    cursor={'pointer'}
+                    onClick={() => setModalProduct(product)}
+                  >
                     <HStack p={2} alignItems={'flex-start'}>
                       <VStack
                         h={'100px'}
@@ -131,7 +167,7 @@ export default function StorePage({ store, products }: Props) {
                           src={'https://via.placeholder.com/150'}
                           width={100}
                           height={100}
-                          alt={''}
+                          alt={`Picture of ${product.name}`}
                         />
                       </VStack>
                       <Stack margin={0} padding={2}>
@@ -150,7 +186,61 @@ export default function StorePage({ store, products }: Props) {
             ))}
           </Stack>
         </Container>
+        {/* TODO: enable when cart is implemented */}
+        {/* <Card width={'100%'} position={'fixed'} bottom={0}>
+          <HStack p={2}>
+            <Text>Footer</Text>
+          </HStack>
+        </Card> */}
       </main>
+
+      <Modal
+        motionPreset="slideInBottom"
+        onClose={() => setModalProduct(null)}
+        size={['full', 'md']}
+        isOpen={!!modalProduct}
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>{modalProduct?.name}</ModalHeader>
+          <ModalCloseButton justifySelf={'center'} alignSelf={'center'} />
+          <Stack width={'100%'}>
+            <Image
+              src={'https://via.placeholder.com/150'}
+              width={150}
+              height={150}
+              quality={100}
+              priority={true}
+              alt="Picture of the author"
+              style={{
+                width: '100%',
+              }}
+            />
+          </Stack>
+          <Stack mb={20} p={4} spacing={4}>
+            <Text color={'gray.700'}>{modalProduct?.description}</Text>
+            <Text fontWeight={'bold'} color={'gray.700'}>
+              {modalProduct?.price ? formatPrice(modalProduct.price) : null}
+            </Text>
+          </Stack>
+          {/* TODO: enable when cart is implemented */}
+          {/* <Card bottom={0} position={'fixed'} width={'100%'}>
+            <HStack p={2}>
+              <CountInput />
+              <Button
+                width={'100%'}
+                flexGrow={1}
+                colorScheme="green"
+                onClick={() => {
+                  console.log('Add to cart')
+                }}
+              >
+                Adicionar
+              </Button>
+            </HStack>
+          </Card> */}
+        </ModalContent>
+      </Modal>
     </>
   )
 }
