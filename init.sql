@@ -42,49 +42,56 @@ VALUES
   );
 
 INSERT INTO
-  products (id, name, description, price)
+  products (id, name, description, price, image_url)
 VALUES
   (
     '4488c1ef-0a2f-4776-838d-000000000001',
     'Cheese Burger',
     'Hamburguer artesanal com queijo, alface, tomate e maionese.',
-    2500
+    2500,
+    'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&dpr=2'
   ),
   (
     '4488c1ef-0a2f-4776-838d-000000000002',
     'Cheese Bacon Burger',
     'Hamburguer artesanal com queijo, bacon, alface, tomate e maionese.',
-    3000
+    3000,
+    'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&dpr=2'
   ),
   (
     '4488c1ef-0a2f-4776-838d-000000000003',
     'Batata Frita',
     'Porção de batata frita com molho especial.',
-    1600
+    1600,
+    'https://images.pexels.com/photos/1893555/pexels-photo-1893555.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
   ),
   (
     '4488c1ef-0a2f-4776-838d-000000000004',
     'Coca-Cola',
     'Refrigerante em lata Coca cola em 350ml.',
-    500
+    500,
+    'https://images.pexels.com/photos/50593/coca-cola-cold-drink-soft-drink-coke-50593.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
   ),
   (
     '4488c1ef-0a2f-4776-838d-000000000005',
     'Suco de Laranja',
     'Suco de laranja feito na hora. Aprox: 500ml',
-    1500
+    1500,
+    'https://images.pexels.com/photos/158053/fresh-orange-juice-squeezed-refreshing-citrus-158053.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
   ),
   (
     '4488c1ef-0a2f-4776-838d-000000000006',
     'Brigadeiro',
     'Brigadeiro de colher com granulado.',
-    200
+    200,
+    'https://images.pexels.com/photos/14493627/pexels-photo-14493627.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
   ),
   (
     '4488c1ef-0a2f-4776-838d-000000000007',
     'Sorvete',
     '1 Bola de sorvete de baunilha.',
-    500
+    500,
+    'https://images.pexels.com/photos/1294943/pexels-photo-1294943.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
   );
 
 INSERT INTO

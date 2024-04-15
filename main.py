@@ -1,54 +1,65 @@
-import os
-from dotenv import load_dotenv
-from flask import Flask
-from flask_cors import CORS
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
+from http import HTTPStatus
+from src.dto import CreateProductDTO, StorePath, StoreProductPath
+from src.services import (
+    create_store_product,
+    delete_store_product,
+    get_store,
+    get_store_products,
+    get_stores,
+)
 from src.errors import NotFoundException
-from src.product_service import ProductService
-from src.store_service import StoreService
+from src.state import AppState
 
-load_dotenv()
-DB_CONNECTION = os.getenv("DB_CONNECTION")
-app = Flask(__name__)
-
-logger = app.logger
-engine = create_engine(DB_CONNECTION)
-session = Session(engine)
-product_service = ProductService(session)
-store_service = StoreService(session)
-
-engine.connect()
-CORS(app, resources={r"/*": {"origins": "*"}})
+ctx = AppState()
+app = ctx.app
 
 
 @app.get("/stores/<uuid:store_id>")
-def fetch_store(store_id):
-    store = store_service.get_store(store_id)
-
-    if store is None:
-        return {"error": "Store not found"}, 404
-    return store.to_dict()
+def get_store_handler(path: StorePath):
+    with ctx.engine.connect() as conn:
+        store = get_store(conn, path.store_id)
+        if store is None:
+            raise NotFoundException(f"Store {path.store_id} not found")
+        return store, HTTPStatus.OK
 
 
 @app.get("/stores")
-def list_stores():
-    rows = store_service.get_stores()
-    stores = map(lambda row: row.to_dict(), rows)
-    return list(stores)
+def get_stores_handler():
+    with ctx.engine.connect() as conn:
+        rows = get_stores(conn)
+        return list(rows), HTTPStatus.OK
 
 
 @app.get("/stores/<uuid:store_id>/products")
-def list_store_products(store_id):
-    rows = product_service.get_store_products(store_id)
-    return list(rows)
+def get_store_products_handler(path: StorePath):
+    with ctx.engine.connect() as conn:
+        rows = get_store_products(conn, path.store_id)
+        return list(rows), HTTPStatus.OK
+
+
+@app.post("/stores/<uuid:store_id>/products")
+def post_store_product_handler(path: StorePath, body: CreateProductDTO):
+    with ctx.engine.connect() as conn:
+        store = get_store(conn, path.store_id)
+        if store is None:
+            raise NotFoundException(f"Store {path.store_id} not found")
+
+        product = create_store_product(conn, path.store_id, body)
+        return product, HTTPStatus.CREATED
+
+
+@app.delete("/stores/<uuid:store_id>/products/<uuid:product_id>")
+def delete_store_product_handler(path: StoreProductPath):
+    with ctx.engine.connect() as conn:
+        delete_store_product(conn, path.store_id, path.product_id)
+        return {}, HTTPStatus.NO_CONTENT
 
 
 @app.errorhandler(Exception)
-def handle_bad_request(e):
-    return {"error": str(e)}, 400
+def bad_request_handler(e):
+    return {"error": str(e)}, HTTPStatus.BAD_REQUEST
 
 
 @app.errorhandler(NotFoundException)
-def handle_not_found(e):
-    return {"error": str(e)}, 404
+def not_found_handler(e):
+    return {"error": str(e)}, HTTPStatus.NOT_FOUND

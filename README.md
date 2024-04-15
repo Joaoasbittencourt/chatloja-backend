@@ -21,3 +21,9 @@ docker compose --profile infra up
 ```bash
 flask --app main.py --debug run
 ```
+
+### Install a package
+```bash
+pip install <package>
+pip freeze > requirements.txt
+```
