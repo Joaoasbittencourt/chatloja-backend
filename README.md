@@ -16,6 +16,7 @@ pip install -r requirements.txt
 ```bash
 docker compose --profile infra up
 ```
+This requires docker to be installed on your machine. It will start a postgres database on port 5432.
 
 ### Run Application on Debug mode
 ```bash
